@@ -4,59 +4,152 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 
-public class Container : MonoBehaviour
+namespace uJect
 {
-    private Dictionary<Type, object> _singletonInstances = new Dictionary<Type, object>();
-    private HashSet<Type> _singletonBindingTypes = new HashSet<Type>();
+    using static BindingFlags;
     
-    void ScanScene()
+    public class Container : MonoBehaviour
     {
-        var monoBehaviors = Resources.FindObjectsOfTypeAll<MonoBehaviour>();
+        private readonly Dictionary<Type, BindingDefinition> _bindings = new Dictionary<Type, BindingDefinition>();
 
-        CollectDependencyInstances(monoBehaviors);
-        InjectDependencies(monoBehaviors);
-    }
-
-    void CollectDependencyInstances(MonoBehaviour[] behaviors)
-    {
-        foreach (var behaviour in behaviors)
+        public void ResolveDependencies()
         {
-            if (_singletonBindingTypes.Contains(behaviour.GetType()))
+            var monoBehaviors = Resources.FindObjectsOfTypeAll<MonoBehaviour>();
+
+            CollectDependencyInstances(monoBehaviors);
+            InjectDependencies(monoBehaviors);
+        }
+
+        void CollectDependencyInstances(MonoBehaviour[] behaviors)
+        {
+            foreach (var behaviour in behaviors)
             {
-                _singletonInstances[behaviour.GetType()] = behaviour;
+                var type = behaviour.GetType();
+                BindInstance(type, behaviour);
+
+                var interfaces = type.GetInterfaces();
+
+                foreach (var @interface in interfaces)
+                {
+                    BindInstance(@interface, behaviour);
+                }
             }
         }
-    }
-    
-    void InjectDependencies(MonoBehaviour[] behaviors)
-    {
-        var parameterList = new List<object>(8);
 
-        foreach (var behaviour in behaviors)
+        private void BindInstance(Type type, MonoBehaviour instance)
         {
-            var method = behaviour.GetType().GetMethod("Inject", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (method != null)
+            if (_bindings.ContainsKey(type))
             {
+                _bindings[type].SetInstance(instance);
+            }
+        }
+
+        private void InjectDependencies(MonoBehaviour[] targets)
+        {
+            var parameterList = new List<object>(8);
+
+            foreach (var target in targets)
+            {
+                var method = target.GetType().GetMethod("Inject", Instance | Public);
+                if (method == null)
+                {
+                    continue;
+                }
+
                 var parameters = method.GetParameters();
                 foreach (var parameter in parameters)
                 {
-                    if (_singletonInstances.TryGetValue(parameter.ParameterType, out var parameterInstance))
+                    if (_bindings.TryGetValue(parameter.ParameterType, out var binding))
                     {
-                        parameterList.Add(parameterInstance);
+                        parameterList.Add(binding.ResolveInstanceToInject(target.GetType()));
                     }
                 }
 
-                method.Invoke(behaviour, parameterList.ToArray());
+                method.Invoke(target, parameterList.ToArray());
+                parameterList.Clear();
             }
-            parameterList.Clear();
         }
-    }
 
-    public void Bind<T>()
-    {
-        _singletonBindingTypes.Add(typeof(T));
-        ScanScene();
+        public BindingBuilder Bind<T>()
+        {
+            return BindingBuilder.Bind<T>(this);
+        }
+
+        public class BindingBuilder
+        {
+            private BindingBuilder(Container container, Type type)
+            {
+                _container = container;
+                _type = type;
+            }
+
+            private readonly Container _container;
+            private readonly Type _type;
+            private Type _concreteType;
+            private Type _conditionalTargetType;
+
+
+            public static BindingBuilder Bind<T>(Container container)
+                => new BindingBuilder(container, typeof(T));
+
+            public BindingBuilder To<T>()
+            {
+                _concreteType = typeof(T);
+                return this;
+            }
+
+            public BindingBuilder WhenInjectedInto<T>()
+            {
+                _conditionalTargetType = typeof(T);
+                return this;
+            }
+
+            public void AsSingle()
+            {
+                if (IsConditionalBinding)
+                {
+                    BindConditional();
+                }
+                else if(IsAbstractBinding)
+                {
+                    BindAbstract();
+                }
+                else
+                {
+                    BindConcrete();
+                }
+            }
+
+            private bool IsConditionalBinding
+                => _conditionalTargetType != null;
+
+            private bool IsAbstractBinding
+                => _concreteType != null;
+            
+
+            private void BindConditional()
+            {
+                if (!_container._bindings.TryGetValue(_type, out var binding))
+                {
+                    _container._bindings[_type] = new ConditionalBindingDefinition(_type, _concreteType, _conditionalTargetType);
+                }
+
+                if (binding is ConditionalBindingDefinition definition)
+                {
+                    definition.AddDefinition(_concreteType, _conditionalTargetType);
+                }
+            }
+
+            private void BindAbstract()
+            {
+                _container._bindings[_type] =  new ConcreteBindingDefinition(_type);
+            }
+            
+            private void BindConcrete()
+            {
+                _container._bindings[_type] = new ConcreteBindingDefinition(_type);
+            }
+        }
 
     }
-  
 }
