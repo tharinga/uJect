@@ -86,7 +86,6 @@ namespace Tests
         [UnityTearDown]
         public IEnumerator TearDown()
         {
-            Debug.Log("Teardown");
             foreach (var monoBehaviour in _destroyables)
             {
                 Object.DestroyImmediate(monoBehaviour.gameObject);
