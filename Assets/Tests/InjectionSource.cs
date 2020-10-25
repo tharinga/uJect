@@ -9,3 +9,8 @@ public class AlternateInjectionSource : MonoBehaviour, IInjectionSource
 {
     public string Value => "B";
 }
+
+public class PocoInjectionSource : IInjectionSource
+{
+    public string Value => "C";
+}

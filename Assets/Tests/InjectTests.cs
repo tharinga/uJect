@@ -16,6 +16,14 @@ namespace Tests
         private Container _container;
         private List<MonoBehaviour> _destroyables = new List<MonoBehaviour>();
         
+        TTarget ArrangeTarget<TTarget>() 
+            where TTarget : MonoBehaviour 
+        {
+            var target = new GameObject("Target").AddComponent<TTarget>();
+            _destroyables.Add(target);
+            return target;
+        }
+        
         TTarget ArrangeSourceAndTarget<TSource, TTarget>() 
             where TTarget : MonoBehaviour 
             where TSource : MonoBehaviour 
@@ -81,6 +89,28 @@ namespace Tests
             
             Assert.That(target1.Value, Is.EqualTo("A"));
             Assert.That(target2.Value, Is.EqualTo("B"));
+        }
+
+        [Test]
+        public void Inject_From_Instance_Into_Target_With_Concrete_Dependency()
+        {
+            var target = ArrangeTarget<InjectionTargetWithPocoDependency>();
+            
+            _container.Bind<PocoInjectionSource>().FromInstance(new PocoInjectionSource()).AsSingle();
+            _container.ResolveDependencies();
+            
+            Assert.That(target.Value, Is.EqualTo("C"));
+        }
+        
+        [Test]
+        public void Inject_From_Instance_Into_Target_With_Interface_Dependency()
+        {
+            var target = ArrangeTarget<InjectionTargetWithInterfaceDependency>();
+            
+            _container.Bind<IInjectionSource>().To<PocoInjectionSource>().FromInstance(new PocoInjectionSource()).AsSingle();
+            _container.ResolveDependencies();
+            
+            Assert.That(target.Value, Is.EqualTo("C"));
         }
         
         [UnityTearDown]

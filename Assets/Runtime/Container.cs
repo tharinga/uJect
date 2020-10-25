@@ -11,7 +11,6 @@ namespace uJect
     public class Container : MonoBehaviour
     {
         private readonly Dictionary<Type, BindingDefinition> _bindings = new Dictionary<Type, BindingDefinition>();
-
         public void ResolveDependencies()
         {
             var monoBehaviors = Resources.FindObjectsOfTypeAll<MonoBehaviour>();
@@ -70,12 +69,12 @@ namespace uJect
             }
         }
 
-        public BindingBuilder Bind<T>()
+        public BindingBuilder<T> Bind<T>()
         {
-            return BindingBuilder.Bind<T>(this);
+            return BindingBuilder<T>.Bind<T>(this);
         }
 
-        public class BindingBuilder
+        public class BindingBuilder<T>
         {
             private BindingBuilder(Container container, Type type)
             {
@@ -87,20 +86,27 @@ namespace uJect
             private readonly Type _type;
             private Type _concreteType;
             private Type _conditionalTargetType;
+            private object _instance;
 
 
-            public static BindingBuilder Bind<T>(Container container)
-                => new BindingBuilder(container, typeof(T));
+            public static BindingBuilder<T> Bind<T>(Container container)
+                => new BindingBuilder<T>(container, typeof(T));
 
-            public BindingBuilder To<T>()
+            public BindingBuilder<T> To<TConcrete>()
             {
-                _concreteType = typeof(T);
+                _concreteType = typeof(TConcrete);
                 return this;
             }
 
-            public BindingBuilder WhenInjectedInto<T>()
+            public BindingBuilder<T> WhenInjectedInto<TTarget>()
             {
-                _conditionalTargetType = typeof(T);
+                _conditionalTargetType = typeof(TTarget);
+                return this;
+            }
+
+            public BindingBuilder<T> FromInstance<TInstance>(TInstance instance)
+            {
+                _instance = instance;
                 return this;
             }
 
@@ -110,14 +116,11 @@ namespace uJect
                 {
                     BindConditional();
                 }
-                else if(IsAbstractBinding)
-                {
-                    BindAbstract();
-                }
                 else
                 {
-                    BindConcrete();
+                    Bind();
                 }
+                SetInstance();
             }
 
             private bool IsConditionalBinding
@@ -140,14 +143,17 @@ namespace uJect
                 }
             }
 
-            private void BindAbstract()
-            {
-                _container._bindings[_type] =  new ConcreteBindingDefinition(_type);
-            }
-            
-            private void BindConcrete()
+            private void Bind()
             {
                 _container._bindings[_type] = new ConcreteBindingDefinition(_type);
+            }
+
+            private void SetInstance()
+            {
+                if (_instance != null)
+                {
+                    _container._bindings[_type].SetInstance(_instance);
+                }
             }
         }
 

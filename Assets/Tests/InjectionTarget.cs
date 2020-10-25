@@ -35,3 +35,15 @@ public class AlternateInjectionTargetWithInterfaceDependency : MonoBehaviour
 
     public string Value => _injectionSource.Value;
 }
+
+public class InjectionTargetWithPocoDependency : MonoBehaviour
+{
+    private PocoInjectionSource _injectionSource;
+
+    public void Inject(PocoInjectionSource injectionSource)
+    {
+        _injectionSource = injectionSource;
+    }
+
+    public string Value => _injectionSource.Value;
+}
