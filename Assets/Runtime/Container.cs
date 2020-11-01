@@ -11,27 +11,42 @@ namespace uJect
     public class Container : MonoBehaviour
     {
         private readonly Dictionary<Type, BindingDefinition> _bindings = new Dictionary<Type, BindingDefinition>();
+        private HashSet<Type> _instancesToCollect = new HashSet<Type>();  
+        
         public void ResolveDependencies()
         {
             var monoBehaviors = Resources.FindObjectsOfTypeAll<MonoBehaviour>();
 
-            CollectDependencyInstances(monoBehaviors);
+            CollectInstancesFromHierarchy(monoBehaviors);
             InjectDependencies(monoBehaviors);
         }
 
-        void CollectDependencyInstances(MonoBehaviour[] behaviors)
+        private void CollectInstancesFromHierarchy(MonoBehaviour[] behaviors)
         {
             foreach (var behaviour in behaviors)
             {
+                if (gameObject.scene != behaviour.gameObject.scene)
+                {
+                    continue;
+                }
+                
                 var type = behaviour.GetType();
-                BindInstance(type, behaviour);
+                BindHierarchyInstance(type, behaviour);
 
                 var interfaces = type.GetInterfaces();
 
                 foreach (var @interface in interfaces)
                 {
-                    BindInstance(@interface, behaviour);
+                    BindHierarchyInstance(@interface, behaviour);
                 }
+            }
+        }
+
+        private void BindHierarchyInstance(Type type, MonoBehaviour instance)
+        {
+            if (_instancesToCollect.Contains(type))
+            {
+                BindInstance(type, instance);
             }
         }
 
@@ -109,7 +124,12 @@ namespace uJect
                 _instance = instance;
                 return this;
             }
-
+            public BindingBuilder<T> FromComponentInHierarchy()
+            {
+                _container._instancesToCollect.Add(_type);
+                return this;
+            }
+            
             public void AsSingle()
             {
                 if (IsConditionalBinding)

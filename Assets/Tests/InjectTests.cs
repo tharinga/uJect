@@ -46,7 +46,7 @@ namespace Tests
         {
             var target = ArrangeSourceAndTarget<InjectionSource, InjectionTargetWithConcreteDependency>();
             
-            _container.Bind<InjectionSource>().AsSingle();
+            _container.Bind<InjectionSource>().FromComponentInHierarchy().AsSingle();
             _container.ResolveDependencies();
             
             Assert.That(target.Value, Is.EqualTo("A"));
@@ -57,7 +57,7 @@ namespace Tests
         {
             var target = ArrangeSourceAndTarget<InjectionSource, InjectionTargetWithInterfaceDependency>();
             
-            _container.Bind<IInjectionSource>().To<InjectionSource>().AsSingle();
+            _container.Bind<IInjectionSource>().To<InjectionSource>().FromComponentInHierarchy().AsSingle();
             _container.ResolveDependencies();
             
             Assert.That(target.Value, Is.EqualTo("A"));
@@ -69,8 +69,8 @@ namespace Tests
             var target1 = ArrangeSourceAndTarget<InjectionSource, InjectionTargetWithConcreteDependency>();
             var target2 = ArrangeSourceAndTarget<InjectionSource, InjectionTargetWithInterfaceDependency>();
             
-            _container.Bind<InjectionSource>().AsSingle();
-            _container.Bind<IInjectionSource>().To<InjectionSource>().AsSingle();
+            _container.Bind<InjectionSource>().FromComponentInHierarchy().AsSingle();
+            _container.Bind<IInjectionSource>().To<InjectionSource>().FromComponentInHierarchy().AsSingle();
             _container.ResolveDependencies();
             
             Assert.That(target1.Value, Is.EqualTo("A"));
@@ -83,8 +83,8 @@ namespace Tests
             var target1 = ArrangeSourceAndTarget<InjectionSource, InjectionTargetWithInterfaceDependency>();
             var target2 = ArrangeSourceAndTarget<AlternateInjectionSource, AlternateInjectionTargetWithInterfaceDependency>();
             
-            _container.Bind<IInjectionSource>().To<InjectionSource>().WhenInjectedInto<InjectionTargetWithInterfaceDependency>().AsSingle();
-            _container.Bind<IInjectionSource>().To<AlternateInjectionSource>().WhenInjectedInto<AlternateInjectionTargetWithInterfaceDependency>().AsSingle();
+            _container.Bind<IInjectionSource>().To<InjectionSource>().WhenInjectedInto<InjectionTargetWithInterfaceDependency>().FromComponentInHierarchy().AsSingle();
+            _container.Bind<IInjectionSource>().To<AlternateInjectionSource>().WhenInjectedInto<AlternateInjectionTargetWithInterfaceDependency>().FromComponentInHierarchy().AsSingle();
             _container.ResolveDependencies();
             
             Assert.That(target1.Value, Is.EqualTo("A"));
