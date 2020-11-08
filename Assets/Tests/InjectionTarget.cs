@@ -47,3 +47,16 @@ public class InjectionTargetWithPocoDependency : MonoBehaviour
 
     public string Value => _injectionSource.Value;
 }
+
+public class InjectionTargetWithPrototypeDependency : MonoBehaviour
+{
+    private PrototypeInjectionSource _injectionSource;
+
+    public void Inject(PrototypeInjectionSource injectionSource)
+    {
+        _injectionSource = injectionSource;
+    }
+
+    public string Value => _injectionSource.Value;
+    public PrototypeInjectionSource Dependency => _injectionSource;
+}

@@ -175,6 +175,11 @@ namespace uJect
                     _container._bindings[_type].SetInstance(_instance);
                 }
             }
+
+            public void FromPrototype<TProto>(TProto prototype) where TProto : class, ICloneable
+            {
+                _container._bindings[_type] = new PrototypeBindingDefinition<TProto>(_type, prototype);
+            }
         }
 
     }

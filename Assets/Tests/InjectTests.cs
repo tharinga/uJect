@@ -112,6 +112,19 @@ namespace Tests
             
             Assert.That(target.Value, Is.EqualTo("C"));
         }
+
+        [Test]
+        public void Inject_From_Prototype()
+        {
+            var target = ArrangeTarget<InjectionTargetWithPrototypeDependency>();
+            var prototype = new PrototypeInjectionSource();
+
+            _container.Bind<PrototypeInjectionSource>().FromPrototype(prototype);
+            _container.ResolveDependencies();
+            
+            Assert.That(target.Value, Is.EqualTo("D"));
+            Assert.That(target.Dependency, Is.Not.SameAs(prototype));
+        }
         
         [UnityTearDown]
         public IEnumerator TearDown()

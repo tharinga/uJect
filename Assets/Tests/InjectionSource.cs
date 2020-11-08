@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class InjectionSource : MonoBehaviour, IInjectionSource
@@ -13,4 +14,13 @@ public class AlternateInjectionSource : MonoBehaviour, IInjectionSource
 public class PocoInjectionSource : IInjectionSource
 {
     public string Value => "C";
+}
+
+public class PrototypeInjectionSource : ICloneable
+{
+    public string Value => "D";
+    public object Clone()
+    {
+        return new PrototypeInjectionSource();
+    }
 }
