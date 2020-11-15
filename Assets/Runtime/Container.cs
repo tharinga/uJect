@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
@@ -41,6 +42,11 @@ namespace uJect
                 }
             }
         }
+        
+        bool HasInjectAttribute(MemberInfo memberInfo)
+        {
+            return Attribute.GetCustomAttribute(memberInfo, typeof(InjectAttribute), false) != null;
+        }
 
         private void BindHierarchyInstance(Type type, MonoBehaviour instance)
         {
@@ -64,22 +70,29 @@ namespace uJect
 
             foreach (var target in targets)
             {
-                var method = target.GetType().GetMethod("Inject", Instance | Public);
-                if (method == null)
+                var methods = target.GetType().GetMethods(Instance | Public);
+                if (methods.Length == 0)
                 {
                     continue;
                 }
 
-                var parameters = method.GetParameters();
-                foreach (var parameter in parameters)
+                foreach (var method in methods)
                 {
-                    if (_bindings.TryGetValue(parameter.ParameterType, out var binding))
+                    if (!HasInjectAttribute(method)) continue;
+                    
+                    var parameters = method.GetParameters();
+                    foreach (var parameter in parameters)
                     {
-                        parameterList.Add(binding.ResolveInstanceToInject(target.GetType()));
+                        if (_bindings.TryGetValue(parameter.ParameterType, out var binding))
+                        {
+                            parameterList.Add(binding.ResolveInstanceToInject(target.GetType()));
+                        }
                     }
+
+                    method.Invoke(target, parameterList.ToArray());
                 }
 
-                method.Invoke(target, parameterList.ToArray());
+                
                 parameterList.Clear();
             }
         }
